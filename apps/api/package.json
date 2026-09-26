@@ -13,6 +13,8 @@
     "test": "jest",
     "test:unit": "jest --testPathPattern=\".*\\.spec\\.ts$\"",
     "test:integration": "jest --config test/jest-e2e.json",
+    "prisma": "prisma",
+    "prisma:push": "prisma db push",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",

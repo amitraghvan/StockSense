@@ -70,7 +70,7 @@ jobs:
         run: pnpm db:generate
 
       - name: Run Prisma Migrations
-        run: pnpm --filter @stocksense/api prisma migrate deploy || pnpm --filter @stocksense/api prisma db push
+        run: pnpm db:migrate:deploy
 
       - name: Format Check
         run: pnpm format:check
