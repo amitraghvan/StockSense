@@ -5,63 +5,51 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@stocksense/ui';
 import {
-  Activity,
-  Package,
-  Warehouse,
+  LayoutDashboard,
   ArrowLeftRight,
+  Package,
   History,
   Settings,
-  Lock,
+  Activity,
+  ChevronRight,
 } from 'lucide-react';
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  disabled?: boolean;
-  phase?: string;
+  subItems?: { name: string; href: string }[];
 }
 
 const navItems: NavItem[] = [
   {
-    name: 'Foundation & Health',
-    href: '/',
-    icon: Activity,
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
   },
   {
-    name: 'Products & SKUs',
-    href: '#',
-    icon: Package,
-    disabled: true,
-    phase: 'Phase 02',
-  },
-  {
-    name: 'Warehouses',
-    href: '#',
-    icon: Warehouse,
-    disabled: true,
-    phase: 'Phase 03',
-  },
-  {
-    name: 'Movements & Transfers',
-    href: '#',
+    name: 'Operations',
+    href: '/operations',
     icon: ArrowLeftRight,
-    disabled: true,
-    phase: 'Phase 04',
+    subItems: [
+      { name: 'Receipts', href: '/operations/receipts' },
+      { name: 'Deliveries', href: '/operations/deliveries' },
+    ],
+  },
+  {
+    name: 'Products',
+    href: '/products',
+    icon: Package,
   },
   {
     name: 'Move History',
-    href: '#',
+    href: '/move-history',
     icon: History,
-    disabled: true,
-    phase: 'Phase 04',
   },
   {
-    name: 'Settings & Access',
-    href: '#',
+    name: 'Settings',
+    href: '/settings',
     icon: Settings,
-    disabled: true,
-    phase: 'Phase 05',
   },
 ];
 
@@ -69,60 +57,86 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 flex-col border-r bg-card/60 backdrop-blur-sm hidden md:flex shrink-0">
+    <aside className="w-64 flex-col border-r bg-card/70 backdrop-blur-sm hidden md:flex shrink-0 select-none">
       <div className="flex flex-col gap-1 p-4">
         <span className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          Core Foundation
+          Navigation
         </span>
-        <div className="space-y-1 mt-2">
+        <nav className="space-y-1 mt-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href && !item.disabled;
+            const isActive =
+              pathname === item.href ||
+              (item.href !== '/dashboard' && pathname.startsWith(item.href));
             const Icon = item.icon;
 
-            if (item.disabled) {
-              return (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground/50 cursor-not-allowed select-none"
+            return (
+              <div key={item.name} className="space-y-1">
+                <Link
+                  href={item.href}
+                  className={cn(
+                    'flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="h-4 w-4" />
                     <span>{item.name}</span>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-                    <Lock className="h-2.5 w-2.5" />
-                    {item.phase}
-                  </span>
-                </div>
-              );
-            }
+                  {item.subItems && (
+                    <ChevronRight
+                      className={cn(
+                        'h-3.5 w-3.5 transition-transform opacity-70',
+                        isActive ? 'rotate-90' : '',
+                      )}
+                    />
+                  )}
+                </Link>
 
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                {/* Sub-navigation for operations */}
+                {item.subItems && isActive && (
+                  <div className="ml-7 pl-3 border-l space-y-1 py-1">
+                    {item.subItems.map((sub) => {
+                      const isSubActive = pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          className={cn(
+                            'block rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
+                            isSubActive
+                              ? 'text-primary font-semibold bg-primary/10'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                          )}
+                        >
+                          {sub.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.name}</span>
-              </Link>
+              </div>
             );
           })}
-        </div>
+        </nav>
       </div>
 
+      {/* Footer System Status link (separated from product navigation) */}
       <div className="mt-auto p-4 border-t border-border/50">
-        <div className="rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground space-y-1 border border-border/40">
-          <p className="font-medium text-foreground">StockSense Core v0.1.0</p>
-          <p className="text-[11px] leading-relaxed">
-            Phase 01 Production Engineering Foundation established.
-          </p>
-        </div>
+        <Link
+          href="/internal/foundation"
+          className="flex items-center justify-between rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground hover:bg-muted/80 transition-colors border border-border/40"
+        >
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="font-medium text-foreground">Core Services</span>
+          </div>
+          <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+        </Link>
       </div>
     </aside>
   );
