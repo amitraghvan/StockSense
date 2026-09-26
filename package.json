@@ -7,6 +7,8 @@
     "dev": "pnpm --parallel --filter \"@stocksense/*\" dev",
     "dev:api": "pnpm --filter @stocksense/api dev",
     "dev:web": "pnpm --filter @stocksense/web dev",
+    "clean:ports": "npx -y kill-port 3000 4000",
+    "dev:clean": "pnpm clean:ports && pnpm dev",
     "build": "pnpm --filter \"@stocksense/types\" build && pnpm --filter \"@stocksense/validation\" build && pnpm --filter \"@stocksense/ui\" build && pnpm --filter \"@stocksense/api\" build && pnpm --filter \"@stocksense/web\" build",
     "build:api": "pnpm --filter @stocksense/api build",
     "build:web": "pnpm --filter @stocksense/web build",
