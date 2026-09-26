@@ -1,0 +1,37 @@
+{
+  "name": "StockSense Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [3000, 4000, 5432, 6379],
+  "portsAttributes": {
+    "3000": {
+      "label": "Web Application",
+      "onAutoForward": "openBrowser"
+    },
+    "4000": {
+      "label": "REST API & Swagger",
+      "onAutoForward": "silent"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "corepack enable && pnpm install && cp -n .env.example .env || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "Prisma.prisma",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  }
+}
