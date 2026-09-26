@@ -1,0 +1,22 @@
+// StockSense Prisma Schema
+// Phase 01: Production Engineering Foundation
+// Note: Phase 02+ business entities (Product, Warehouse, Location, StockBalance, etc.) are strictly deferred.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Foundational system audit log for platform events and migrations verification.
+model SystemAuditLog {
+  id        String   @id @default(uuid())
+  action    String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  metadata  Json?
+
+  @@map("system_audit_logs")
+}

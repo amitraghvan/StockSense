@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1.4
+# Multi-stage production Dockerfile for StockSense API (NestJS + Fastify)
+
+FROM node:22-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+WORKDIR /app
+
+# Dependencies stage
+FROM base AS dependencies
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
+COPY packages/config/package.json ./packages/config/
+COPY packages/types/package.json ./packages/types/
+COPY packages/validation/package.json ./packages/validation/
+COPY apps/api/package.json ./apps/api/
+RUN pnpm install --frozen-lockfile || pnpm install
+
+# Build stage
+FROM dependencies AS builder
+COPY . .
+RUN pnpm --filter @stocksense/types build || true
+RUN pnpm --filter @stocksense/validation build || true
+RUN pnpm --filter @stocksense/api prisma:generate
+RUN pnpm --filter @stocksense/api build
+
+# Production runner stage
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs
+
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/packages ./packages
+COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
+
+USER nestjs
+EXPOSE 4000
+ENV PORT=4000
+
+CMD ["node", "apps/api/dist/main.js"]

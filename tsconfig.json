@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./packages/config/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@stocksense/types": ["packages/types/src"],
+      "@stocksense/types/*": ["packages/types/src/*"],
+      "@stocksense/validation": ["packages/validation/src"],
+      "@stocksense/validation/*": ["packages/validation/src/*"],
+      "@stocksense/ui": ["packages/ui/src"],
+      "@stocksense/ui/*": ["packages/ui/src/*"]
+    }
+  },
+  "include": ["apps/**/*", "packages/**/*"],
+  "exclude": ["node_modules", "dist", ".next", "coverage"]
+}

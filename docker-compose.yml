@@ -1,0 +1,56 @@
+name: stocksense
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stocksense-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-stocksense}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stocksense_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-stocksense_dev}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-stocksense} -d ${POSTGRES_DB:-stocksense_dev}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - stocksense-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: stocksense-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - stocksense-network
+
+volumes:
+  postgres_data:
+    name: stocksense_postgres_data
+  redis_data:
+    name: stocksense_redis_data
+
+networks:
+  stocksense-network:
+    name: stocksense_network
+    driver: bridge

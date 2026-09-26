@@ -1,0 +1,88 @@
+name: StockSense CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Code Quality & Monorepo Validation
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: stocksense
+          POSTGRES_PASSWORD: stocksense_secret
+          POSTGRES_DB: stocksense_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://stocksense:stocksense_secret@localhost:5432/stocksense_dev?schema=public
+      REDIS_URL: redis://localhost:6379
+      PORT: 4000
+      API_PREFIX: api/v1
+      CORS_ORIGIN: http://localhost:3000
+      LOG_LEVEL: warn
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile || pnpm install
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Prisma Migrations
+        run: pnpm --filter @stocksense/api prisma migrate deploy || pnpm --filter @stocksense/api prisma db push
+
+      - name: Format Check
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run Unit Tests
+        run: pnpm test:unit
+
+      - name: Run Integration Tests
+        run: pnpm test:integration
+
+      - name: Build Monorepo Artifacts
+        run: pnpm build

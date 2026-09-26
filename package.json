@@ -1,0 +1,53 @@
+{
+  "name": "stocksense-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"@stocksense/*\" dev",
+    "dev:api": "pnpm --filter @stocksense/api dev",
+    "dev:web": "pnpm --filter @stocksense/web dev",
+    "build": "pnpm --filter \"@stocksense/types\" build && pnpm --filter \"@stocksense/validation\" build && pnpm --filter \"@stocksense/ui\" build && pnpm --filter \"@stocksense/api\" build && pnpm --filter \"@stocksense/web\" build",
+    "build:api": "pnpm --filter @stocksense/api build",
+    "build:web": "pnpm --filter @stocksense/web build",
+    "typecheck": "pnpm --recursive --parallel run typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "test": "pnpm --recursive run test",
+    "test:unit": "pnpm --filter @stocksense/api test:unit",
+    "test:integration": "pnpm --filter @stocksense/api test:integration",
+    "test:e2e": "pnpm --filter @stocksense/web test:e2e",
+    "db:generate": "pnpm --filter @stocksense/api prisma:generate",
+    "db:migrate:dev": "pnpm --filter @stocksense/api prisma:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @stocksense/api prisma:migrate:deploy",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.70.1",
+    "@typescript-eslint/parser": "^8.70.1",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  }
+}
