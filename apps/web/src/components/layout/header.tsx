@@ -11,7 +11,6 @@ import {
   Menu,
   Search,
   Settings,
-  Sparkles,
   Terminal,
   User,
   X,
@@ -172,12 +171,6 @@ export function Header() {
 
         {/* Right side controls */}
         <div className="ml-auto flex items-center gap-2">
-          {/* 100 Cr+ Landing Page Pill */}
-          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 transition-all select-none">
-            <Sparkles className="size-3 text-indigo-500 animate-pulse" />
-            <span>100 Cr+ Landing Page</span>
-          </div>
-
           {/* Search Trigger */}
           <button
             onClick={() => setIsSearchModalOpen(true)}
