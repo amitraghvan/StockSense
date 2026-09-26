@@ -15,13 +15,90 @@ export class ApiClientError extends Error {
 
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
+  skipAuth?: boolean;
 }
 
 class ApiClient {
   private readonly baseUrl: string;
+  private accessToken: string | null = null;
+  private refreshToken: string | null = null;
+  private activeTenantId: string | null = null;
+  private onUnauthorizedCallback: (() => void) | null = null;
+  private isRefreshing = false;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor() {
     this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+
+    // Hydrate tokens from localStorage on client-side
+    if (typeof window !== 'undefined') {
+      this.accessToken = localStorage.getItem('stocksense_access_token');
+      this.refreshToken = localStorage.getItem('stocksense_refresh_token');
+      this.activeTenantId = localStorage.getItem('stocksense_tenant_id');
+    }
+  }
+
+  setTokens(accessToken: string | null, refreshToken?: string | null) {
+    this.accessToken = accessToken;
+    if (typeof window !== 'undefined') {
+      if (accessToken) {
+        localStorage.setItem('stocksense_access_token', accessToken);
+        document.cookie = `stocksense_access_token=${encodeURIComponent(accessToken)}; path=/; SameSite=Lax; max-age=604800`;
+      } else {
+        localStorage.removeItem('stocksense_access_token');
+        document.cookie = 'stocksense_access_token=; path=/; max-age=0';
+      }
+    }
+
+    if (refreshToken !== undefined) {
+      this.refreshToken = refreshToken;
+      if (typeof window !== 'undefined') {
+        if (refreshToken) {
+          localStorage.setItem('stocksense_refresh_token', refreshToken);
+        } else {
+          localStorage.removeItem('stocksense_refresh_token');
+        }
+      }
+    }
+  }
+
+  setActiveTenant(tenantId: string | null) {
+    this.activeTenantId = tenantId;
+    if (typeof window !== 'undefined') {
+      if (tenantId) {
+        localStorage.setItem('stocksense_tenant_id', tenantId);
+      } else {
+        localStorage.removeItem('stocksense_tenant_id');
+      }
+    }
+  }
+
+  getActiveTenant(): string | null {
+    return this.activeTenantId;
+  }
+
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
+  getRefreshToken(): string | null {
+    return this.refreshToken;
+  }
+
+  setOnUnauthorized(callback: () => void) {
+    this.onUnauthorizedCallback = callback;
+  }
+
+  clearAuth() {
+    this.accessToken = null;
+    this.refreshToken = null;
+    this.activeTenantId = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('stocksense_access_token');
+      localStorage.removeItem('stocksense_refresh_token');
+      localStorage.removeItem('stocksense_tenant_id');
+      document.cookie = 'stocksense_access_token=; path=/; max-age=0';
+    }
   }
 
   private buildUrl(
@@ -50,21 +127,73 @@ class ApiClient {
     return `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
+  private async refreshSession(): Promise<string | null> {
+    if (!this.refreshToken) {
+      return null;
+    }
+
+    if (this.isRefreshing && this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.isRefreshing = true;
+    this.refreshPromise = (async () => {
+      try {
+        const res = await fetch(this.buildUrl('auth/refresh'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({ refreshToken: this.refreshToken }),
+        });
+
+        if (!res.ok) {
+          this.clearAuth();
+          if (this.onUnauthorizedCallback) this.onUnauthorizedCallback();
+          return null;
+        }
+
+        const data = await res.json();
+        const tokens = data?.data?.tokens || data?.tokens;
+        if (tokens?.accessToken) {
+          this.setTokens(tokens.accessToken, tokens.refreshToken);
+          return tokens.accessToken;
+        }
+        return null;
+      } catch {
+        this.clearAuth();
+        if (this.onUnauthorizedCallback) this.onUnauthorizedCallback();
+        return null;
+      } finally {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
+  }
+
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { params, headers, ...customConfig } = options;
+    const { params, headers, skipAuth, ...customConfig } = options;
     const url = this.buildUrl(endpoint, params);
     const requestId = this.generateRequestId();
 
-    const requestHeaders: HeadersInit = {
+    const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       'X-Request-Id': requestId,
-      ...headers,
+      ...((headers as Record<string, string>) || {}),
     };
 
-    // Note: Future auth token injection hook goes here in Phase 02
-    // const token = getAuthToken();
-    // if (token) requestHeaders['Authorization'] = `Bearer ${token}`;
+    if (!skipAuth) {
+      if (this.accessToken) {
+        requestHeaders['Authorization'] = `Bearer ${this.accessToken}`;
+      }
+      if (this.activeTenantId) {
+        requestHeaders['X-Tenant-Id'] = this.activeTenantId;
+      }
+    }
 
     const config: RequestInit = {
       ...customConfig,
@@ -72,7 +201,22 @@ class ApiClient {
     };
 
     try {
-      const response = await fetch(url, config);
+      let response = await fetch(url, config);
+
+      // Handle 401 Unauthorized by attempting a token refresh
+      if (
+        response.status === 401 &&
+        !skipAuth &&
+        this.refreshToken &&
+        !endpoint.includes('auth/')
+      ) {
+        const newAccessToken = await this.refreshSession();
+        if (newAccessToken) {
+          requestHeaders['Authorization'] = `Bearer ${newAccessToken}`;
+          response = await fetch(url, { ...config, headers: requestHeaders });
+        }
+      }
+
       const resRequestId = response.headers.get('x-request-id') || requestId;
 
       if (!response.ok) {
@@ -87,6 +231,10 @@ class ApiClient {
         const errorMessage =
           errorData?.error?.message || response.statusText || 'An unexpected error occurred';
         const details = errorData?.error?.details;
+
+        if (response.status === 401 && this.onUnauthorizedCallback) {
+          this.onUnauthorizedCallback();
+        }
 
         throw new ApiClientError(errorCode, errorMessage, response.status, resRequestId, details);
       }

@@ -2,8 +2,10 @@ import { Controller, Get, HttpCode, HttpStatus, ServiceUnavailableException } fr
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthService } from './health.service';
 import { HealthResponse } from '@stocksense/types';
+import { Public } from '../modules/auth/decorators/public.decorator';
 
 @ApiTags('Health & Observability')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}

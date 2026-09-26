@@ -2,9 +2,10 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Boxes,
+  Building2,
   ChevronDown,
   LogOut,
   Menu,
@@ -12,16 +13,20 @@ import {
   Settings,
   Sparkles,
   Terminal,
+  User,
   X,
 } from 'lucide-react';
 import { DropdownMenu, cn } from '@stocksense/ui';
+import { useAuth } from '../../providers/auth-provider';
 
 const navLink =
   'inline-flex h-12 items-center gap-1 border-b-2 border-transparent px-3 text-sm font-medium text-nav-foreground transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const activeNav = 'border-primary text-primary font-semibold';
 
 export function Header() {
+  const router = useRouter();
   const pathname = usePathname();
+  const { user, activeTenant, availableTenants, switchTenant, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [operationsOpen, setOperationsOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
@@ -184,37 +189,49 @@ export function Header() {
           <DropdownMenu
             trigger={
               <button
-                className="ml-1 flex size-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground border border-border hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer"
+                className="ml-1 flex size-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground border border-border hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer shadow-xs"
                 aria-label="Account menu"
               >
-                7
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
               </button>
             }
             items={[
               {
-                label: 'StockSense Admin',
+                label: user ? `${user.name} (${activeTenant?.name || 'Workspace'})` : 'Account',
                 onClick: () => {},
                 disabled: true,
               },
               {
+                label: 'User Profile',
+                icon: <User className="size-4" />,
+                onClick: () => router.push('/profile'),
+              },
+              ...availableTenants
+                .filter((t) => t.tenant.id !== activeTenant?.id)
+                .map((t) => ({
+                  label: `Switch: ${t.tenant.name}`,
+                  icon: <Building2 className="size-4 text-primary" />,
+                  onClick: () => switchTenant(t.tenant.id),
+                })),
+              {
                 label: 'Warehouse Settings',
-                icon: <Settings className="h-4 w-4" />,
+                icon: <Settings className="size-4" />,
                 onClick: () => {
-                  window.location.href = '/settings';
+                  router.push('/settings');
                 },
               },
               {
                 label: 'Developer Diagnostics',
-                icon: <Terminal className="h-4 w-4" />,
+                icon: <Terminal className="size-4" />,
                 onClick: () => {
-                  window.location.href = '/internal/foundation';
+                  router.push('/internal/foundation');
                 },
               },
               {
                 label: 'Sign Out',
-                icon: <LogOut className="h-4 w-4 text-destructive" />,
+                icon: <LogOut className="size-4 text-destructive" />,
                 destructive: true,
-                onClick: () => {},
+                onClick: () => logout(),
               },
             ]}
           />

@@ -3,6 +3,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyCors from '@fastify/cors';
+import fastifyCookie from '@fastify/cookie';
 import { randomUUID } from 'crypto';
 import { AppModule } from './app.module';
 import { EnvService } from './config/env.service';
@@ -46,14 +47,20 @@ async function bootstrap() {
     contentSecurityPolicy: envService.isProduction ? undefined : false,
   });
 
+  // Security: Cookies
+  const cookieSecret = envService.get('COOKIE_SECRET');
+  await app.register(fastifyCookie as unknown as Parameters<typeof app.register>[0], {
+    secret: cookieSecret,
+  });
+
   // Security: CORS Configuration
   const corsOrigin = envService.get('CORS_ORIGIN');
   await app.register(fastifyCors as unknown as Parameters<typeof app.register>[0], {
     origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'Accept'],
-    exposedHeaders: ['X-Request-Id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Tenant-Id', 'Accept'],
+    exposedHeaders: ['X-Request-Id', 'X-Tenant-Id'],
   });
 
   // API Versioning Prefix (/api/v1)
