@@ -16,12 +16,12 @@ test.describe('StockSense ERP Navigation & Application Shell', () => {
     // Verify Receipt & Delivery Cards
     await expect(page.locator('h2:has-text("Receipt")')).toBeVisible();
     await expect(page.locator('h2:has-text("Delivery")')).toBeVisible();
-    await expect(page.locator('text=1 to receive').first()).toBeVisible();
+    await expect(page.locator('text=0 to receive').first()).toBeVisible();
     await expect(page.locator('text=1 to deliver').first()).toBeVisible();
 
     // Verify 4 Metric KPI Cards
     await expect(page.locator('text=Stock value').first()).toBeVisible();
-    await expect(page.locator('text=₹3,21,600').first()).toBeVisible();
+    await expect(page.locator('text=₹3,39,600').first()).toBeVisible();
     await expect(page.locator('text=Out of stock').first()).toBeVisible();
     await expect(page.locator('text=Moves recorded').first()).toBeVisible();
 

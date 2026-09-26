@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const kpis = [
     {
       label: 'Stock value',
-      value: '₹3,21,600',
+      value: '₹3,39,600',
     },
     {
       label: 'Products',
@@ -23,17 +23,33 @@ export default function DashboardPage() {
     },
     {
       label: 'Moves recorded',
-      value: '2',
+      value: '3',
     },
   ];
 
   const recentOperations = [
     {
+      ref: 'WH/OUT/0004',
+      contact: '—',
+      scheduleDate: '2026-09-26',
+      isLate: false,
+      status: 'draft',
+      link: '/operations/deliveries',
+    },
+    {
+      ref: 'WH/OUT/0003',
+      contact: '—',
+      scheduleDate: '2026-09-26',
+      isLate: false,
+      status: 'draft',
+      link: '/operations/deliveries',
+    },
+    {
       ref: 'WH/IN/0001',
       contact: 'Azure Interior',
       scheduleDate: '2026-09-24',
-      isLate: true,
-      status: 'ready',
+      isLate: false,
+      status: 'done',
       link: '/operations/receipts',
     },
     {
@@ -78,11 +94,11 @@ export default function DashboardPage() {
             <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
               <Link href="/operations/receipts">
                 <Button className="bg-primary text-primary-foreground font-medium px-4 py-2 rounded-md hover:bg-primary/90 transition-colors shadow-xs">
-                  1 to receive
+                  0 to receive
                 </Button>
               </Link>
               <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 text-sm">
-                <dt className="text-right font-semibold text-destructive">1</dt>
+                <dt className="text-right font-semibold text-destructive">0</dt>
                 <dd className="text-destructive font-medium">Late</dd>
                 <dt className="text-right font-semibold text-foreground">1</dt>
                 <dd className="text-muted-foreground">Operations</dd>
@@ -144,8 +160,8 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {recentOperations.map((o) => (
-                <tr key={o.ref}>
+              {recentOperations.map((o, idx) => (
+                <tr key={`${o.ref}-${idx}`}>
                   <td>
                     <Link
                       href={o.link}
