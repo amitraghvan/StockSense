@@ -9,6 +9,10 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { ProductsModule } from './modules/products/products.module';
+import { WarehousesModule } from './modules/warehouses/warehouses.module';
+import { LocationsModule } from './modules/locations/locations.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -21,6 +25,10 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     AuthModule,
     ProfileModule,
     TenantsModule,
+    CategoriesModule,
+    ProductsModule,
+    WarehousesModule,
+    LocationsModule,
     HealthModule,
   ],
   providers: [

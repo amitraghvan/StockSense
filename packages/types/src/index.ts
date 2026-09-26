@@ -156,3 +156,100 @@ export interface JwtRefreshPayload {
   sub: string; // userId
   sessionId: string;
 }
+
+// ==============================================================================
+// Phase 03: Inventory Master Data Types
+// ==============================================================================
+
+export type CategoryStatusType = 'ACTIVE' | 'INACTIVE';
+export type ProductStatusType = 'ACTIVE' | 'INACTIVE';
+export type WarehouseStatusType = 'ACTIVE' | 'INACTIVE';
+export type LocationStatusType = 'ACTIVE' | 'INACTIVE';
+
+export type UnitOfMeasureType =
+  'PCS' | 'KG' | 'G' | 'L' | 'ML' | 'BOX' | 'PACK' | 'SET' | 'PAIR' | 'M' | 'CM' | 'UNIT';
+
+export const UOM_DISPLAY_NAMES: Record<UnitOfMeasureType, string> = {
+  PCS: 'Pieces',
+  KG: 'Kilograms',
+  G: 'Grams',
+  L: 'Liters',
+  ML: 'Milliliters',
+  BOX: 'Boxes',
+  PACK: 'Packs',
+  SET: 'Sets',
+  PAIR: 'Pairs',
+  M: 'Meters',
+  CM: 'Centimeters',
+  UNIT: 'Units',
+};
+
+export interface CategorySummary {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string | null;
+  status: CategoryStatusType;
+  productCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductSummary {
+  id: string;
+  tenantId: string;
+  sku: string;
+  name: string;
+  description: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  unitOfMeasure: UnitOfMeasureType;
+  barcode: string | null;
+  costPrice: number | null;
+  salePrice: number | null;
+  reorderLevel: number | null;
+  reorderQty: number | null;
+  status: ProductStatusType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WarehouseSummary {
+  id: string;
+  tenantId: string;
+  name: string;
+  code: string;
+  address: string | null;
+  description: string | null;
+  status: WarehouseStatusType;
+  locationCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LocationSummary {
+  id: string;
+  tenantId: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCode: string;
+  name: string;
+  shortCode: string;
+  description: string | null;
+  status: LocationStatusType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductLocationSummary {
+  id: string;
+  tenantId: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  locationId: string;
+  locationName: string;
+  locationShortCode: string;
+  warehouseName: string;
+  createdAt: string;
+}

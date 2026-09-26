@@ -1,6 +1,7 @@
 // StockSense Prisma Schema
 // Phase 01: Production Engineering Foundation
 // Phase 02: Identity, Authentication, Authorization & Multi-Tenant Foundation
+// Phase 03: Inventory Master Data & Storage Architecture
 
 generator client {
   provider = "prisma-client-js"
@@ -9,6 +10,45 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ==============================================================================
+// Phase 03: Inventory Master Data Enums
+// ==============================================================================
+
+enum UnitOfMeasure {
+  PCS
+  KG
+  G
+  L
+  ML
+  BOX
+  PACK
+  SET
+  PAIR
+  M
+  CM
+  UNIT
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum WarehouseStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum LocationStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum UserStatus {
@@ -67,9 +107,14 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  memberships Membership[]
-  roles       Role[]
-  auditLogs   IdentityAuditLog[]
+  memberships      Membership[]
+  roles            Role[]
+  auditLogs        IdentityAuditLog[]
+  categories       Category[]
+  products         Product[]
+  warehouses       Warehouse[]
+  locations        Location[]
+  productLocations ProductLocation[]
 
   @@map("tenants")
 }
@@ -194,4 +239,122 @@ model IdentityAuditLog {
   @@index([tenantId])
   @@index([event])
   @@map("identity_audit_logs")
+}
+
+// ==============================================================================
+// Phase 03: Inventory Master Data & Storage Architecture
+// ==============================================================================
+
+/// Product categories for inventory classification. Flat structure (no hierarchy).
+model Category {
+  id          String         @id @default(uuid())
+  tenantId    String         @map("tenant_id")
+  name        String         @db.VarChar(150)
+  description String?        @db.VarChar(500)
+  status      CategoryStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("categories")
+}
+
+/// Products represent inventory items tracked by the system.
+model Product {
+  id            String        @id @default(uuid())
+  tenantId      String        @map("tenant_id")
+  sku           String        @db.VarChar(50)
+  name          String        @db.VarChar(200)
+  description   String?       @db.VarChar(1000)
+  categoryId    String?       @map("category_id")
+  unitOfMeasure UnitOfMeasure @default(PCS) @map("unit_of_measure")
+  barcode       String?       @db.VarChar(100)
+  costPrice     Decimal?      @map("cost_price") @db.Decimal(12, 2)
+  salePrice     Decimal?      @map("sale_price") @db.Decimal(12, 2)
+  reorderLevel  Int?          @map("reorder_level")
+  reorderQty    Int?          @map("reorder_qty")
+  status        ProductStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  productLocations ProductLocation[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@index([tenantId, categoryId])
+  @@index([tenantId, status])
+  @@map("products")
+}
+
+/// Warehouses represent physical storage facilities.
+model Warehouse {
+  id          String          @id @default(uuid())
+  tenantId    String          @map("tenant_id")
+  name        String          @db.VarChar(150)
+  code        String          @db.VarChar(20)
+  address     String?         @db.VarChar(500)
+  description String?         @db.VarChar(500)
+  status      WarehouseStatus @default(ACTIVE)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  locations Location[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@map("warehouses")
+}
+
+/// Locations represent storage positions within a warehouse.
+model Location {
+  id          String         @id @default(uuid())
+  tenantId    String         @map("tenant_id")
+  warehouseId String         @map("warehouse_id")
+  name        String         @db.VarChar(150)
+  shortCode   String         @map("short_code") @db.VarChar(30)
+  description String?        @db.VarChar(500)
+  status      LocationStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  warehouse        Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  productLocations ProductLocation[]
+
+  @@unique([warehouseId, shortCode])
+  @@index([tenantId])
+  @@index([warehouseId])
+  @@index([tenantId, warehouseId])
+  @@map("locations")
+}
+
+/// Product-Location relationship foundation for the future stock engine.
+/// Does NOT store quantities — that belongs to the transactional stock ledger.
+model ProductLocation {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  productId  String   @map("product_id")
+  locationId String   @map("location_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locationId])
+  @@index([tenantId])
+  @@index([productId])
+  @@index([locationId])
+  @@map("product_locations")
 }

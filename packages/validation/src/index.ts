@@ -183,3 +183,122 @@ export const UpdateProfileSchema = z.object({
 });
 
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
+
+// ==============================================================================
+// Phase 03: Inventory Master Data Validation Schemas
+// ==============================================================================
+
+export const UnitOfMeasureValues = [
+  'PCS',
+  'KG',
+  'G',
+  'L',
+  'ML',
+  'BOX',
+  'PACK',
+  'SET',
+  'PAIR',
+  'M',
+  'CM',
+  'UNIT',
+] as const;
+
+export const CreateCategorySchema = z.object({
+  name: z.string().trim().min(1, 'Category name is required').max(150),
+  description: z.string().trim().max(500).optional().nullable(),
+});
+
+export type CreateCategoryInput = z.infer<typeof CreateCategorySchema>;
+
+export const UpdateCategorySchema = z.object({
+  name: z.string().trim().min(1, 'Category name is required').max(150).optional(),
+  description: z.string().trim().max(500).optional().nullable(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+});
+
+export type UpdateCategoryInput = z.infer<typeof UpdateCategorySchema>;
+
+export const CreateProductSchema = z.object({
+  sku: z
+    .string()
+    .trim()
+    .min(1, 'SKU is required')
+    .max(50)
+    .regex(/^[A-Za-z0-9\-_]+$/, 'SKU can only contain letters, numbers, hyphens, and underscores')
+    .transform((val) => val.toUpperCase()),
+  name: z.string().trim().min(1, 'Product name is required').max(200),
+  description: z.string().trim().max(1000).optional().nullable(),
+  categoryId: z.string().uuid('Invalid category').optional().nullable(),
+  unitOfMeasure: z.enum(UnitOfMeasureValues).default('PCS'),
+  barcode: z.string().trim().max(100).optional().nullable(),
+  costPrice: z.coerce.number().min(0, 'Cost price must be positive').optional().nullable(),
+  salePrice: z.coerce.number().min(0, 'Sale price must be positive').optional().nullable(),
+  reorderLevel: z.coerce.number().int().min(0).optional().nullable(),
+  reorderQty: z.coerce.number().int().min(1).optional().nullable(),
+});
+
+export type CreateProductInput = z.infer<typeof CreateProductSchema>;
+
+export const UpdateProductSchema = z.object({
+  name: z.string().trim().min(1, 'Product name is required').max(200).optional(),
+  description: z.string().trim().max(1000).optional().nullable(),
+  categoryId: z.string().uuid('Invalid category').optional().nullable(),
+  unitOfMeasure: z.enum(UnitOfMeasureValues).optional(),
+  barcode: z.string().trim().max(100).optional().nullable(),
+  costPrice: z.coerce.number().min(0).optional().nullable(),
+  salePrice: z.coerce.number().min(0).optional().nullable(),
+  reorderLevel: z.coerce.number().int().min(0).optional().nullable(),
+  reorderQty: z.coerce.number().int().min(1).optional().nullable(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+});
+
+export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
+
+export const CreateWarehouseSchema = z.object({
+  name: z.string().trim().min(1, 'Warehouse name is required').max(150),
+  code: z
+    .string()
+    .trim()
+    .min(1, 'Warehouse code is required')
+    .max(20)
+    .regex(/^[A-Za-z0-9\-_]+$/, 'Code can only contain letters, numbers, hyphens, and underscores')
+    .transform((val) => val.toUpperCase()),
+  address: z.string().trim().max(500).optional().nullable(),
+  description: z.string().trim().max(500).optional().nullable(),
+});
+
+export type CreateWarehouseInput = z.infer<typeof CreateWarehouseSchema>;
+
+export const UpdateWarehouseSchema = z.object({
+  name: z.string().trim().min(1, 'Warehouse name is required').max(150).optional(),
+  address: z.string().trim().max(500).optional().nullable(),
+  description: z.string().trim().max(500).optional().nullable(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+});
+
+export type UpdateWarehouseInput = z.infer<typeof UpdateWarehouseSchema>;
+
+export const CreateLocationSchema = z.object({
+  warehouseId: z.string().uuid('Invalid warehouse'),
+  name: z.string().trim().min(1, 'Location name is required').max(150),
+  shortCode: z
+    .string()
+    .trim()
+    .min(1, 'Short code is required')
+    .max(30)
+    .regex(
+      /^[A-Za-z0-9\-_]+$/,
+      'Short code can only contain letters, numbers, hyphens, and underscores',
+    ),
+  description: z.string().trim().max(500).optional().nullable(),
+});
+
+export type CreateLocationInput = z.infer<typeof CreateLocationSchema>;
+
+export const UpdateLocationSchema = z.object({
+  name: z.string().trim().min(1, 'Location name is required').max(150).optional(),
+  description: z.string().trim().max(500).optional().nullable(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+});
+
+export type UpdateLocationInput = z.infer<typeof UpdateLocationSchema>;

@@ -148,16 +148,22 @@ export function Header() {
             {settingsOpen && (
               <div className="absolute left-0 top-full mt-1 w-44 rounded-md border border-border bg-popover p-1 shadow-md z-50 animate-in fade-in zoom-in-95 duration-100">
                 <Link
-                  href="/settings"
+                  href="/settings?tab=warehouses"
                   className="block rounded-sm px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover transition-colors"
                 >
                   Warehouses
                 </Link>
                 <Link
-                  href="/settings"
+                  href="/settings?tab=locations"
                   className="block rounded-sm px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover transition-colors"
                 >
                   Locations
+                </Link>
+                <Link
+                  href="/settings?tab=categories"
+                  className="block rounded-sm px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover transition-colors"
+                >
+                  Categories
                 </Link>
               </div>
             )}
