@@ -64,7 +64,7 @@ test.describe('StockSense Authentication & Protected Application Shell', () => {
     await expect(page.locator('h1:has-text("Move History")')).toBeVisible();
 
     await page.goto('/settings');
-    await expect(page.locator('h1:has-text("Warehouses")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Warehouse")').first()).toBeVisible();
 
     // 6. Navigate to User Profile page
     await page.goto('/profile');

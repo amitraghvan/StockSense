@@ -13,6 +13,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
 import { WarehousesModule } from './modules/warehouses/warehouses.module';
 import { LocationsModule } from './modules/locations/locations.module';
+import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -29,6 +30,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     ProductsModule,
     WarehousesModule,
     LocationsModule,
+    ReceiptsModule,
     HealthModule,
   ],
   providers: [

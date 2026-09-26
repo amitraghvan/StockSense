@@ -253,3 +253,61 @@ export interface ProductLocationSummary {
   warehouseName: string;
   createdAt: string;
 }
+
+// ==============================================================================
+// Phase 04: Receipts & Incoming Inventory Operations Types
+// ==============================================================================
+
+export type ReceiptStatusType = 'DRAFT' | 'READY' | 'DONE' | 'CANCELLED';
+
+export interface ReceiptLineSummary {
+  id: string;
+  receiptId: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  locationId: string;
+  locationName: string;
+  locationShortCode: string;
+  quantity: number;
+  unitOfMeasure?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReceiptSummary {
+  id: string;
+  tenantId: string;
+  reference: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCode: string;
+  supplierName: string;
+  contactPerson: string | null;
+  responsibleUserId: string | null;
+  responsibleUserName: string | null;
+  scheduleDate: string;
+  status: ReceiptStatusType;
+  notes: string | null;
+  lineCount?: number;
+  lines?: ReceiptLineSummary[];
+  isLate?: boolean;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryBalanceSummary {
+  id: string;
+  tenantId: string;
+  productId: string;
+  productSku: string;
+  productName: string;
+  locationId: string;
+  locationName: string;
+  locationShortCode: string;
+  warehouseName: string;
+  quantityOnHand: number;
+  updatedAt: string;
+}

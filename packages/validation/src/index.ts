@@ -302,3 +302,45 @@ export const UpdateLocationSchema = z.object({
 });
 
 export type UpdateLocationInput = z.infer<typeof UpdateLocationSchema>;
+
+// ==============================================================================
+// Phase 04: Receipts & Incoming Inventory Operations Validation Schemas
+// ==============================================================================
+
+export const ReceiptStatusValues = ['DRAFT', 'READY', 'DONE', 'CANCELLED'] as const;
+
+export const CreateReceiptLineSchema = z.object({
+  productId: z.string().uuid('Invalid product ID'),
+  locationId: z.string().uuid('Invalid location ID'),
+  quantity: z.coerce
+    .number()
+    .int('Quantity must be an integer')
+    .positive('Quantity must be greater than 0'),
+});
+
+export type CreateReceiptLineInput = z.infer<typeof CreateReceiptLineSchema>;
+
+export const CreateReceiptSchema = z.object({
+  warehouseId: z.string().uuid('Invalid warehouse ID'),
+  supplierName: z.string().trim().min(1, 'Supplier / Vendor name is required').max(150),
+  contactPerson: z.string().trim().max(150).optional().nullable(),
+  scheduleDate: z.string().min(1, 'Schedule date is required'),
+  notes: z.string().trim().max(1000).optional().nullable(),
+  lines: z.array(CreateReceiptLineSchema).min(1, 'Receipt must have at least one product line'),
+});
+
+export type CreateReceiptInput = z.infer<typeof CreateReceiptSchema>;
+
+export const UpdateReceiptSchema = z.object({
+  warehouseId: z.string().uuid('Invalid warehouse ID').optional(),
+  supplierName: z.string().trim().min(1, 'Supplier / Vendor name is required').max(150).optional(),
+  contactPerson: z.string().trim().max(150).optional().nullable(),
+  scheduleDate: z.string().optional(),
+  notes: z.string().trim().max(1000).optional().nullable(),
+  lines: z
+    .array(CreateReceiptLineSchema)
+    .min(1, 'Receipt must have at least one product line')
+    .optional(),
+});
+
+export type UpdateReceiptInput = z.infer<typeof UpdateReceiptSchema>;

@@ -1,7 +1,7 @@
 import { LocationsService } from './locations.service';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 describe('LocationsService (Phase 03 Master Data)', () => {
   let service: LocationsService;

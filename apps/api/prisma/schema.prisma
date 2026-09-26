@@ -58,6 +58,13 @@ enum UserStatus {
   DISABLED
 }
 
+enum ReceiptStatus {
+  DRAFT
+  READY
+  DONE
+  CANCELLED
+}
+
 enum TenantStatus {
   ACTIVE
   SUSPENDED
@@ -90,10 +97,11 @@ model User {
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
 
-  memberships       Membership[]
-  sessions          Session[]
-  passwordResetOtps PasswordResetOtp[]
-  auditLogs         IdentityAuditLog[]
+  memberships         Membership[]
+  sessions            Session[]
+  passwordResetOtps   PasswordResetOtp[]
+  auditLogs           IdentityAuditLog[]
+  responsibleReceipts Receipt[]
 
   @@map("users")
 }
@@ -107,14 +115,19 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  memberships      Membership[]
-  roles            Role[]
-  auditLogs        IdentityAuditLog[]
-  categories       Category[]
-  products         Product[]
-  warehouses       Warehouse[]
-  locations        Location[]
-  productLocations ProductLocation[]
+  memberships       Membership[]
+  roles             Role[]
+  auditLogs         IdentityAuditLog[]
+  categories        Category[]
+  products          Product[]
+  warehouses        Warehouse[]
+  locations         Location[]
+  productLocations  ProductLocation[]
+  receipts          Receipt[]
+  receiptLines      ReceiptLine[]
+  receiptSequences  ReceiptSequence[]
+  inventoryBalances InventoryBalance[]
+  stockMovements    StockMovement[]
 
   @@map("tenants")
 }
@@ -285,6 +298,9 @@ model Product {
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   productLocations ProductLocation[]
+  receiptLines     ReceiptLine[]
+  inventoryBalances InventoryBalance[]
+  stockMovements   StockMovement[]
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -308,6 +324,7 @@ model Warehouse {
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   locations Location[]
+  receipts  Receipt[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -330,6 +347,9 @@ model Location {
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   warehouse        Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   productLocations ProductLocation[]
+  receiptLines     ReceiptLine[]
+  inventoryBalances InventoryBalance[]
+  stockMovements   StockMovement[]
 
   @@unique([warehouseId, shortCode])
   @@index([tenantId])
@@ -357,4 +377,122 @@ model ProductLocation {
   @@index([productId])
   @@index([locationId])
   @@map("product_locations")
+}
+
+// ==============================================================================
+// Phase 04: Receipts & Incoming Inventory Operations
+// ==============================================================================
+
+/// Tenant-scoped, concurrency-safe counter for sequential receipt numbering.
+model ReceiptSequence {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  prefix    String   @default("WH/IN") @db.VarChar(20)
+  lastValue Int      @default(0) @map("last_value")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, prefix])
+  @@map("receipt_sequences")
+}
+
+/// Receipts represent incoming inventory shipments entering a warehouse.
+model Receipt {
+  id                String        @id @default(uuid())
+  tenantId          String        @map("tenant_id")
+  reference         String        @db.VarChar(50)
+  warehouseId       String        @map("warehouse_id")
+  supplierName      String        @map("supplier_name") @db.VarChar(150)
+  contactPerson     String?       @map("contact_person") @db.VarChar(150)
+  responsibleUserId String?       @map("responsible_user_id")
+  scheduleDate      DateTime      @map("schedule_date")
+  status            ReceiptStatus @default(DRAFT)
+  notes             String?       @db.VarChar(1000)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  completedAt       DateTime?     @map("completed_at")
+  cancelledAt       DateTime?     @map("cancelled_at")
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  warehouse       Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  responsibleUser User?           @relation(fields: [responsibleUserId], references: [id], onDelete: SetNull)
+  lines           ReceiptLine[]
+  stockMovements  StockMovement[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([warehouseId])
+  @@index([tenantId, scheduleDate])
+  @@map("receipts")
+}
+
+/// Individual product line items within an incoming receipt.
+model ReceiptLine {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  receiptId  String   @map("receipt_id")
+  productId  String   @map("product_id")
+  locationId String   @map("location_id")
+  quantity   Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  receipt  Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([receiptId])
+  @@index([productId])
+  @@index([locationId])
+  @@map("receipt_lines")
+}
+
+/// Transactional inventory quantity on hand at each product-location bin.
+model InventoryBalance {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("tenant_id")
+  productId      String   @map("product_id")
+  locationId     String   @map("location_id")
+  quantityOnHand Int      @default(0) @map("quantity_on_hand")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locationId])
+  @@index([tenantId])
+  @@index([productId])
+  @@index([locationId])
+  @@map("inventory_balances")
+}
+
+/// Minimal ledger recording immutable inventory mutations for audit history.
+model StockMovement {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  receiptId    String?  @map("receipt_id")
+  productId    String   @map("product_id")
+  locationId   String   @map("location_id")
+  quantity     Int
+  movementType String   @default("RECEIPT") @map("movement_type") @db.VarChar(30)
+  reference    String   @db.VarChar(50)
+  performedBy  String?  @map("performed_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  receipt  Receipt? @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([receiptId])
+  @@index([productId])
+  @@index([locationId])
+  @@map("stock_movements")
 }

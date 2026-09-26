@@ -1,7 +1,7 @@
 import { WarehousesService } from './warehouses.service';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConflictException, BadRequestException } from '@nestjs/common';
 
 describe('WarehousesService (Phase 03 Master Data)', () => {
   let service: WarehousesService;
