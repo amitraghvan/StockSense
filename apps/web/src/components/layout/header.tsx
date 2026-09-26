@@ -2,118 +2,369 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useTheme } from '../../providers/theme-provider';
-import { Button, DropdownMenu } from '@stocksense/ui';
+import { usePathname } from 'next/navigation';
 import {
-  Sun,
-  Moon,
-  Laptop,
-  Search,
-  User,
-  Settings,
-  Terminal,
+  Boxes,
+  ChevronDown,
   LogOut,
-  Building2,
+  Menu,
+  Search,
+  Settings,
+  Sparkles,
+  Terminal,
+  X,
 } from 'lucide-react';
+import { DropdownMenu, cn } from '@stocksense/ui';
+
+const navLink =
+  'inline-flex h-12 items-center gap-1 border-b-2 border-transparent px-3 text-sm font-medium text-nav-foreground transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const activeNav = 'border-primary text-primary font-semibold';
 
 export function Header() {
-  const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [operationsOpen, setOperationsOpen] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [isSearchModalOpen, setIsSearchModalOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setMobileOpen(false);
+    setOperationsOpen(false);
+    setSettingsOpen(false);
+  }, [pathname]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const isDashboard = pathname === '/' || pathname === '/dashboard';
+  const isOperations =
+    pathname.startsWith('/operations') ||
+    pathname.startsWith('/receipts') ||
+    pathname.startsWith('/deliveries');
+  const isProducts = pathname.startsWith('/products');
+  const isStock = pathname.startsWith('/stock');
+  const isMoveHistory = pathname.startsWith('/move-history');
+  const isSettings = pathname.startsWith('/settings');
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b bg-background/80 px-6 backdrop-blur-md">
-      <div className="flex items-center gap-6">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-extrabold shadow-sm">
-            S
+    <header className="sticky top-0 z-40 border-b border-border bg-nav">
+      <div className="mx-auto flex h-12 max-w-[1440px] items-center gap-1 px-2 md:px-4">
+        {/* Mobile menu trigger */}
+        <button
+          className="inline-flex size-9 items-center justify-center rounded-md hover:bg-surface-hover lg:hidden text-foreground"
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          onClick={() => setMobileOpen((o) => !o)}
+        >
+          {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+        </button>
+
+        {/* Logo */}
+        <Link
+          href="/dashboard"
+          className="mr-3 flex items-center gap-2 px-2 font-semibold text-foreground"
+        >
+          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-xs">
+            <Boxes className="size-4" aria-hidden="true" />
           </span>
-          <span className="text-xl font-bold tracking-tight text-foreground">StockSense</span>
+          <span className="tracking-tight text-base font-bold">StockSense</span>
         </Link>
 
-        {/* Global Search Bar */}
-        <div className="relative hidden md:block w-72 lg:w-96">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder="Search operations, products, references..."
-            className="h-9 w-full rounded-md border border-input bg-muted/30 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+        {/* Desktop Horizontal Navigation (Odoo ERP Theme) */}
+        <nav className="hidden items-center lg:flex" aria-label="Primary">
+          <Link href="/dashboard" className={cn(navLink, isDashboard && activeNav)}>
+            Dashboard
+          </Link>
+
+          {/* Operations Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setOperationsOpen((o) => !o)}
+              onBlur={() => setTimeout(() => setOperationsOpen(false), 200)}
+              className={cn(navLink, isOperations && activeNav)}
+            >
+              <span>Operations</span>
+              <ChevronDown className="size-3.5 opacity-70" aria-hidden="true" />
+            </button>
+            {operationsOpen && (
+              <div className="absolute left-0 top-full mt-1 w-44 rounded-md border border-border bg-popover p-1 shadow-md z-50 animate-in fade-in zoom-in-95 duration-100">
+                <Link
+                  href="/operations/receipts"
+                  className="block rounded-sm px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover transition-colors"
+                >
+                  Receipts
+                </Link>
+                <Link
+                  href="/operations/deliveries"
+                  className="block rounded-sm px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover transition-colors"
+                >
+                  Deliveries
+                </Link>
+                <Link
+                  href="/stock"
+                  className="block rounded-sm px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover transition-colors"
+                >
+                  Adjustments
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <Link href="/products" className={cn(navLink, isProducts && activeNav)}>
+            Products
+          </Link>
+
+          <Link href="/stock" className={cn(navLink, isStock && activeNav)}>
+            Stock
+          </Link>
+
+          <Link href="/move-history" className={cn(navLink, isMoveHistory && activeNav)}>
+            Move History
+          </Link>
+
+          {/* Settings Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setSettingsOpen((o) => !o)}
+              onBlur={() => setTimeout(() => setSettingsOpen(false), 200)}
+              className={cn(navLink, isSettings && activeNav)}
+            >
+              <span>Settings</span>
+              <ChevronDown className="size-3.5 opacity-70" aria-hidden="true" />
+            </button>
+            {settingsOpen && (
+              <div className="absolute left-0 top-full mt-1 w-44 rounded-md border border-border bg-popover p-1 shadow-md z-50 animate-in fade-in zoom-in-95 duration-100">
+                <Link
+                  href="/settings"
+                  className="block rounded-sm px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover transition-colors"
+                >
+                  Warehouses
+                </Link>
+                <Link
+                  href="/settings"
+                  className="block rounded-sm px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover transition-colors"
+                >
+                  Locations
+                </Link>
+              </div>
+            )}
+          </div>
+        </nav>
+
+        {/* Right side controls */}
+        <div className="ml-auto flex items-center gap-2">
+          {/* 100 Cr+ Landing Page Pill */}
+          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 transition-all select-none">
+            <Sparkles className="size-3 text-indigo-500 animate-pulse" />
+            <span>100 Cr+ Landing Page</span>
+          </div>
+
+          {/* Search Trigger */}
+          <button
+            onClick={() => setIsSearchModalOpen(true)}
+            className="flex h-8 items-center gap-2 rounded-md border border-border bg-background px-2.5 text-sm text-muted-foreground hover:border-border-strong transition-colors cursor-pointer"
+            aria-label="Search (Ctrl+K)"
+          >
+            <Search className="size-4" />
+            <span className="hidden md:inline text-xs">Search…</span>
+            <kbd className="hidden rounded-sm border border-border px-1 text-[10px] md:inline font-mono">
+              Ctrl K
+            </kbd>
+          </button>
+
+          {/* User Profile / Menu Pill */}
+          <DropdownMenu
+            trigger={
+              <button
+                className="ml-1 flex size-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground border border-border hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer"
+                aria-label="Account menu"
+              >
+                7
+              </button>
+            }
+            items={[
+              {
+                label: 'StockSense Admin',
+                onClick: () => {},
+                disabled: true,
+              },
+              {
+                label: 'Warehouse Settings',
+                icon: <Settings className="h-4 w-4" />,
+                onClick: () => {
+                  window.location.href = '/settings';
+                },
+              },
+              {
+                label: 'Developer Diagnostics',
+                icon: <Terminal className="h-4 w-4" />,
+                onClick: () => {
+                  window.location.href = '/internal/foundation';
+                },
+              },
+              {
+                label: 'Sign Out',
+                icon: <LogOut className="h-4 w-4 text-destructive" />,
+                destructive: true,
+                onClick: () => {},
+              },
+            ]}
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        {/* Warehouse Selector */}
-        <div className="hidden lg:flex items-center gap-1.5 rounded-md border bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground font-medium">
-          <Building2 className="h-3.5 w-3.5 text-primary" />
-          <span>Main Warehouse (WH/Stock)</span>
+      {/* Mobile Drawer */}
+      {mobileOpen && (
+        <div className="border-t border-border bg-surface px-4 py-3 lg:hidden space-y-1 animate-in slide-in-from-top-2 duration-150">
+          <Link
+            href="/dashboard"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm font-medium',
+              isDashboard
+                ? 'bg-primary/10 text-primary font-semibold'
+                : 'text-foreground hover:bg-surface-hover',
+            )}
+          >
+            Dashboard
+          </Link>
+          <div className="pt-2 pb-1 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Operations
+          </div>
+          <Link
+            href="/operations/receipts"
+            className="block rounded-md px-3 py-1.5 text-sm font-medium text-foreground hover:bg-surface-hover pl-6"
+          >
+            Receipts
+          </Link>
+          <Link
+            href="/operations/deliveries"
+            className="block rounded-md px-3 py-1.5 text-sm font-medium text-foreground hover:bg-surface-hover pl-6"
+          >
+            Deliveries
+          </Link>
+          <Link
+            href="/products"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm font-medium',
+              isProducts
+                ? 'bg-primary/10 text-primary font-semibold'
+                : 'text-foreground hover:bg-surface-hover',
+            )}
+          >
+            Products
+          </Link>
+          <Link
+            href="/stock"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm font-medium',
+              isStock
+                ? 'bg-primary/10 text-primary font-semibold'
+                : 'text-foreground hover:bg-surface-hover',
+            )}
+          >
+            Stock
+          </Link>
+          <Link
+            href="/move-history"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm font-medium',
+              isMoveHistory
+                ? 'bg-primary/10 text-primary font-semibold'
+                : 'text-foreground hover:bg-surface-hover',
+            )}
+          >
+            Move History
+          </Link>
+          <Link
+            href="/settings"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm font-medium',
+              isSettings
+                ? 'bg-primary/10 text-primary font-semibold'
+                : 'text-foreground hover:bg-surface-hover',
+            )}
+          >
+            Settings
+          </Link>
         </div>
+      )}
 
-        {/* Theme Switcher */}
-        <div className="flex items-center border rounded-md p-0.5 bg-muted/30">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 rounded-sm ${theme === 'light' ? 'bg-background shadow-xs text-foreground' : ''}`}
-            onClick={() => setTheme('light')}
-            aria-label="Light mode"
-          >
-            <Sun className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 rounded-sm ${theme === 'dark' ? 'bg-background shadow-xs text-foreground' : ''}`}
-            onClick={() => setTheme('dark')}
-            aria-label="Dark mode"
-          >
-            <Moon className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 rounded-sm ${theme === 'system' ? 'bg-background shadow-xs text-foreground' : ''}`}
-            onClick={() => setTheme('system')}
-            aria-label="System mode"
-          >
-            <Laptop className="h-3.5 w-3.5" />
-          </Button>
+      {/* Global Quick Search Modal (Ctrl+K) */}
+      {isSearchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-background/80 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-surface p-4 shadow-xl space-y-3">
+            <div className="flex items-center gap-2 border-b border-border pb-2">
+              <Search className="size-4 text-muted-foreground" />
+              <input
+                autoFocus
+                placeholder="Search operations, products, references..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+              />
+              <button
+                onClick={() => setIsSearchModalOpen(false)}
+                className="text-xs text-muted-foreground hover:text-foreground p-1"
+              >
+                ESC
+              </button>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="px-2 py-1 font-semibold text-muted-foreground uppercase tracking-wider">
+                Quick Navigation
+              </div>
+              <Link
+                href="/dashboard"
+                onClick={() => setIsSearchModalOpen(false)}
+                className="flex items-center justify-between rounded-md px-2 py-2 text-foreground hover:bg-surface-hover"
+              >
+                <span>Dashboard Overview</span>
+                <span className="text-muted-foreground text-[10px]">Jump to page</span>
+              </Link>
+              <Link
+                href="/operations/receipts"
+                onClick={() => setIsSearchModalOpen(false)}
+                className="flex items-center justify-between rounded-md px-2 py-2 text-foreground hover:bg-surface-hover"
+              >
+                <span>Inbound Receipts (WH/IN)</span>
+                <span className="text-muted-foreground text-[10px]">Operations</span>
+              </Link>
+              <Link
+                href="/operations/deliveries"
+                onClick={() => setIsSearchModalOpen(false)}
+                className="flex items-center justify-between rounded-md px-2 py-2 text-foreground hover:bg-surface-hover"
+              >
+                <span>Outbound Deliveries (WH/OUT)</span>
+                <span className="text-muted-foreground text-[10px]">Operations</span>
+              </Link>
+              <Link
+                href="/products"
+                onClick={() => setIsSearchModalOpen(false)}
+                className="flex items-center justify-between rounded-md px-2 py-2 text-foreground hover:bg-surface-hover"
+              >
+                <span>Products & SKUs</span>
+                <span className="text-muted-foreground text-[10px]">Inventory</span>
+              </Link>
+              <Link
+                href="/move-history"
+                onClick={() => setIsSearchModalOpen(false)}
+                className="flex items-center justify-between rounded-md px-2 py-2 text-foreground hover:bg-surface-hover"
+              >
+                <span>Stock Move Ledger</span>
+                <span className="text-muted-foreground text-[10px]">Audit</span>
+              </Link>
+            </div>
+          </div>
         </div>
-
-        {/* Profile Dropdown */}
-        <DropdownMenu
-          trigger={
-            <button className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary border border-primary/20 hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-              <User className="h-4 w-4" />
-            </button>
-          }
-          items={[
-            {
-              label: 'StockSense Admin',
-              onClick: () => {},
-              disabled: true,
-            },
-            {
-              label: 'Warehouse Settings',
-              icon: <Settings className="h-4 w-4" />,
-              onClick: () => {
-                window.location.href = '/settings';
-              },
-            },
-            {
-              label: 'Developer Diagnostics',
-              icon: <Terminal className="h-4 w-4" />,
-              onClick: () => {
-                window.location.href = '/internal/foundation';
-              },
-            },
-            {
-              label: 'Sign Out',
-              icon: <LogOut className="h-4 w-4 text-destructive" />,
-              destructive: true,
-              onClick: () => {},
-            },
-          ]}
-        />
-      </div>
+      )}
     </header>
   );
 }

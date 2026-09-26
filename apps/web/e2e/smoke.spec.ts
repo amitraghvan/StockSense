@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('StockSense Product Navigation & Application Shell', () => {
-  test('should render the product dashboard as default landing', async ({ page }) => {
+test.describe('StockSense ERP Navigation & Application Shell', () => {
+  test('should render the dashboard as default landing with exact ERP layout', async ({ page }) => {
     await page.goto('/');
 
     // Verify Title & Brand
@@ -10,42 +10,52 @@ test.describe('StockSense Product Navigation & Application Shell', () => {
 
     // Verify Dashboard Landing
     await expect(page).toHaveURL(/.*dashboard/);
-    await expect(page.locator('h2:has-text("Inventory Dashboard")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible();
+    await expect(page.locator('text=Inventory overview').first()).toBeVisible();
 
-    // Verify Operational Overview Cards
-    await expect(page.locator('text=Receipts').first()).toBeVisible();
-    await expect(page.locator('text=Delivery Orders').first()).toBeVisible();
-    await expect(page.locator('text=Internal Transfers').first()).toBeVisible();
-    await expect(page.locator('text=Adjustments').first()).toBeVisible();
+    // Verify Receipt & Delivery Cards
+    await expect(page.locator('h2:has-text("Receipt")')).toBeVisible();
+    await expect(page.locator('h2:has-text("Delivery")')).toBeVisible();
+    await expect(page.locator('text=1 to receive').first()).toBeVisible();
+    await expect(page.locator('text=1 to deliver').first()).toBeVisible();
+
+    // Verify 4 Metric KPI Cards
+    await expect(page.locator('text=Stock value').first()).toBeVisible();
+    await expect(page.locator('text=₹3,21,600').first()).toBeVisible();
+    await expect(page.locator('text=Out of stock').first()).toBeVisible();
+    await expect(page.locator('text=Moves recorded').first()).toBeVisible();
+
+    // Verify Recent Operations
+    await expect(page.locator('h2:has-text("Recent operations")')).toBeVisible();
+    await expect(page.locator('text=View move history').first()).toBeVisible();
   });
 
-  test('should navigate across primary product routes without phase badges', async ({ page }) => {
+  test('should navigate across ERP product routes via top navigation', async ({ page }) => {
     await page.goto('/dashboard');
-
-    // Operations Hub
-    await page.goto('/operations');
-    await expect(page.locator('h2:has-text("Operations Hub")')).toBeVisible();
 
     // Inbound Receipts
     await page.goto('/operations/receipts');
-    await expect(page.locator('h2:has-text("Incoming Receipts")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Receipts")')).toBeVisible();
 
     // Outbound Deliveries
     await page.goto('/operations/deliveries');
-    await expect(page.locator('h2:has-text("Delivery Orders")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Deliveries")')).toBeVisible();
 
     // Products Catalog
     await page.goto('/products');
-    await expect(page.locator('h2:has-text("Products & Items")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Products")')).toBeVisible();
+
+    // Stock Levels
+    await page.goto('/stock');
+    await expect(page.locator('h1:has-text("Stock")')).toBeVisible();
 
     // Move History Ledger
     await page.goto('/move-history');
-    await expect(page.locator('h2:has-text("Stock Move History")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Move History")')).toBeVisible();
 
-    // Settings (Warehouse & Locations)
+    // Settings (Warehouses & Locations)
     await page.goto('/settings');
-    await expect(page.locator('h2:has-text("Settings & Configuration")')).toBeVisible();
-    await expect(page.locator('text=Warehouses & Locations').first()).toBeVisible();
+    await expect(page.locator('h1:has-text("Warehouses")')).toBeVisible();
   });
 
   test('should keep developer diagnostics isolated under /internal/foundation', async ({
@@ -54,7 +64,7 @@ test.describe('StockSense Product Navigation & Application Shell', () => {
     await page.goto('/internal/foundation');
 
     // Verify Developer Diagnostics header
-    await expect(page.locator('text=Developer Diagnostics & Foundation')).toBeVisible();
+    await expect(page.locator('h1:has-text("Developer Diagnostics")')).toBeVisible();
 
     // Verify Infrastructure cards
     await expect(page.locator('text=API Runtime (Fastify)')).toBeVisible();
